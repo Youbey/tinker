@@ -1,0 +1,5 @@
+[
+  {"id": "Q1", "prompt": "What is 17 times 23?", "pattern": "391"},
+  {"id": "Q2", "prompt": "If all bloops are razzies and all razzies are lazzies, are all bloops lazzies?", "pattern": "\\byes\\b"},
+  {"id": "Q3", "prompt": "A train leaves at 3:15 pm going 60 km per hour. Another leaves the same station at 4:00 pm going 80 km per hour on the same track. At what time does the second catch the first?", "pattern": "6[:.]15|18[:.]15"}
+]

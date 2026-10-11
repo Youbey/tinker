@@ -1,0 +1,17 @@
+[
+  {"name": "reverse_words",
+   "prompt": "Write a Python function reverse_words(s) that reverses the order of the words in a string. Split on any whitespace and join with single spaces.",
+   "asserts": "assert reverse_words(\"hello big world\") == \"world big hello\"\nassert reverse_words(\"  a   b \") == \"b a\"\nassert reverse_words(\"\") == \"\""},
+  {"name": "is_palindrome",
+   "prompt": "Write a Python function is_palindrome(s) that returns True if s reads the same forwards and backwards, ignoring case and all non-alphanumeric characters.",
+   "asserts": "assert is_palindrome(\"A man, a plan, a canal: Panama\") is True\nassert is_palindrome(\"hello\") is False\nassert is_palindrome(\"\") is True"},
+  {"name": "flatten",
+   "prompt": "Write a Python function flatten(x) that flattens arbitrarily nested lists into one flat list, preserving order.",
+   "asserts": "assert flatten([1,[2,[3,4]],5]) == [1,2,3,4,5]\nassert flatten([]) == []\nassert flatten([[[]],[1]]) == [1]"},
+  {"name": "fizzbuzz",
+   "prompt": "Write a Python function fizzbuzz(n) returning a list of strings for 1..n: 'Fizz' for multiples of 3, 'Buzz' for multiples of 5, 'FizzBuzz' for both, otherwise the number as a string.",
+   "asserts": "assert fizzbuzz(5) == [\"1\",\"2\",\"Fizz\",\"4\",\"Buzz\"]\nassert fizzbuzz(15)[-1] == \"FizzBuzz\"\nassert fizzbuzz(0) == []"},
+  {"name": "parse_duration",
+   "prompt": "Write a Python function parse_duration(s) that converts strings like '1h30m', '45s', '2d3h' into total seconds. Units: d=86400, h=3600, m=60, s=1.",
+   "asserts": "assert parse_duration(\"1h30m\") == 5400\nassert parse_duration(\"45s\") == 45\nassert parse_duration(\"2d3h\") == 183600"}
+]

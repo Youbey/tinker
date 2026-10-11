@@ -1,0 +1,4 @@
+# Voice (skipped by ./install.sh --no-voice). Lower bounds are the versions this project was validated with.
+numpy>=2
+faster-whisper>=1.2
+piper-tts>=1.8

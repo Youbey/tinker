@@ -1,0 +1,19 @@
+# --- everything below is generated or personal: never commit it ---
+.venv/
+__pycache__/
+*.pyc
+
+# models, downloads and caches (many GB)
+models/
+voices/
+.cache/
+
+# runtime data: your requests, your voice recordings, generated answers
+state/
+logs/
+out/
+
+# written by install.sh for this machine
+config/models.ini
+config/models.ini.bak
+config/tinker.env

@@ -1,0 +1,7 @@
+Tinker
+Copyright 2026 Youbey
+
+Tinker's own code is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Tinker downloads third-party models and container images at install time. None of them are
+redistributed by this repository, and each keeps its own licence (see README, "Licences").

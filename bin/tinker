@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# tinker: start/stop the Tinker stack (Podman pods) and run the assistant.
+set -uo pipefail
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+V="$(cd "$(dirname "$SELF")/.." && pwd)"            # the project folder, wherever it lives
+SOCK="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/podman/podman.sock"
+PIDF="$V/state/podman-api.pid"
+
+# Settings written by install.sh (PROFILE, LLM_THREADS, DECIDER_THREADS). Without the file: detect a GPU, use sane defaults.
+[ -f "$V/config/tinker.env" ] && . "$V/config/tinker.env"
+if [ -z "${PROFILE:-}" ]; then
+  if ls ${TINKER_DRI_GLOB:-/dev/dri/renderD*} >/dev/null 2>&1; then PROFILE=vulkan; else PROFILE=cpu; fi
+fi
+LLM_THREADS="${LLM_THREADS:-6}"
+DECIDER_THREADS="${DECIDER_THREADS:-8}"
+LLM_FLAGS=(--models-preset /config/models.ini --models-max 1 --host 0.0.0.0 --port 8080 -c 8192 -t "$LLM_THREADS" -np 1 --jinja)
+if [ "$PROFILE" = vulkan ]; then
+  LLM_IMAGE="ghcr.io/ggml-org/llama.cpp:server-vulkan"; LLM_DEVICE=(--device /dev/dri); LLM_FLAGS+=(-ngl 99)
+else
+  LLM_IMAGE="ghcr.io/ggml-org/llama.cpp:server"; LLM_DEVICE=()
+fi
+
+api_ok() { curl -sf --unix-socket "$SOCK" http://d/_ping 2>/dev/null | grep -q OK; }
+api_up() {
+  api_ok && return 0
+  rm -f "$SOCK"; mkdir -p "$(dirname "$SOCK")" "$V/logs" "$V/state"
+  nohup podman system service --time=0 "unix://$SOCK" >"$V/logs/podman-api.log" 2>&1 </dev/null &
+  echo $! >"$PIDF"
+  for _ in 1 2 3 4 5 6 7 8 9 10; do api_ok && return 0; sleep 0.5; done
+  echo "Podman API did not start: see $V/logs/podman-api.log" >&2; return 1
+}
+api_down() { [ -f "$PIDF" ] && kill "$(cat "$PIDF")" 2>/dev/null; rm -f "$PIDF"; }
+wait_ready() {
+  for _ in $(seq 1 180); do
+    curl -sf localhost:8080/models >/dev/null 2>&1 && curl -sf localhost:8081/health >/dev/null 2>&1 && return 0
+    sleep 1
+  done
+  echo "Timed out. Try: tinker logs tinker-llm   or   tinker logs tinker-decider" >&2; return 1
+}
+warm() {   # load the chat model in the background so the first question is fast
+  ( curl -s -o /dev/null localhost:8080/v1/chat/completions -H 'Content-Type: application/json' \
+      -d '{"model":"minicpm5","max_tokens":1,"chat_template_kwargs":{"enable_thinking":false},"messages":[{"role":"user","content":"hi"}]}' & ) 2>/dev/null
+}
+cleanup() {
+  trap '' INT                                         # a second Ctrl-C must not interrupt shutdown
+  [ -n "${TINKER_MIC_ORIG:-}" ] && wpctl set-volume @DEFAULT_AUDIO_SOURCE@ "$TINKER_MIC_ORIG"
+  [ -z "${TINKER_KEEP:-}" ] && "$SELF" off
+}
+
+case "${1:-}" in
+  build)   # (re)create both pods and their containers; models and config are mounted from the project folder
+    DECIDER_GGUF_FILE="$(ls "$V"/models/decider-2b/*Q8_0.gguf 2>/dev/null | head -n1)"
+    [ -n "$DECIDER_GGUF_FILE" ] || { echo "Decider model not found in $V/models/decider-2b (run ./install.sh)" >&2; exit 1; }
+    api_up || exit 1
+    podman pod rm -f tinker-brain tinker-observe >/dev/null 2>&1
+    podman pod create --name tinker-brain -p 127.0.0.1:8080:8080 -p 127.0.0.1:8081:8081 >/dev/null
+    # containers are only CREATED here: starting then stopping a decider that is still loading its model would hang
+    podman create --pod tinker-brain --name tinker-llm "${LLM_DEVICE[@]}" \
+      -v "$V/models":/models:ro,z -v "$V/config":/config:ro,z \
+      "$LLM_IMAGE" "${LLM_FLAGS[@]}" >/dev/null
+    podman create --pod tinker-brain --name tinker-decider -v "$V/models/decider-2b":/model:ro,z \
+      -e DECIDER_GGUF="/model/$(basename "$DECIDER_GGUF_FILE")" -e THREADS="$DECIDER_THREADS" localhost/tinker-decider >/dev/null
+    podman pod create --name tinker-observe -p 127.0.0.1:9999:8080 >/dev/null
+    podman create --pod tinker-observe --name tinker-dozzle --security-opt label=disable \
+      -v "$SOCK":/var/run/docker.sock:ro ghcr.io/amir20/dozzle:latest >/dev/null
+    api_down
+    echo "Built ($PROFILE profile). Now: tinker on" ;;
+  up)
+    api_up || exit 1
+    if ! podman pod start tinker-brain tinker-observe >/dev/null 2>&1; then
+      echo "Pods missing or in a bad state: rebuilding (nothing is downloaded)..." >&2
+      "$SELF" build >/dev/null || exit 1
+      api_up || exit 1
+      podman pod start tinker-brain tinker-observe >/dev/null || { echo "Start failed even after a rebuild" >&2; exit 1; }
+    fi
+    wait_ready && warm && echo "Tinker stack is up.  Logs: http://127.0.0.1:9999" ;;
+  on|chat|speak)
+    mode="$1"; shift
+    "$SELF" up || exit 1
+    trap cleanup EXIT
+    case "$mode" in on) extra=(--voice) ;; speak) extra=(--speak) ;; *) extra=() ;; esac
+    if [ "$mode" = on ]; then                         # a lower mic level avoids clipping; restored on exit
+      TINKER_MIC_ORIG=$(wpctl get-volume @DEFAULT_AUDIO_SOURCE@ | awk '{print $2}')
+      wpctl set-volume @DEFAULT_AUDIO_SOURCE@ "${TINKER_MIC_VOLUME:-0.45}"
+    fi
+    "$V/.venv/bin/python" "$V/orchestrator/tinker.py" "${extra[@]}" "$@" ;;
+  off)
+    podman pod stop tinker-brain tinker-observe >/dev/null 2>&1; api_down; echo "Tinker is off." ;;
+  status)
+    podman pod ps; echo; podman stats --no-stream | cat; echo
+    curl -sf localhost:8080/models 2>/dev/null | jq -r '.data[] | "model \(.id): \(.status.value)"' 2>/dev/null ;;
+  logs)
+    podman logs -f "${2:-tinker-llm}" ;;
+  *)
+    echo "usage: tinker {build | on (voice) | speak (type, hear) | chat (type, silent) | up | off | status | logs [container]}"
+    echo "       TINKER_KEEP=1 tinker on   keeps the stack running after you exit" ;;
+esac

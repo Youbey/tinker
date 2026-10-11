@@ -1,0 +1,2 @@
+# Core: only the Hugging Face downloader. The orchestrator itself uses the standard library.
+huggingface_hub>=2.1

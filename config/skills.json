@@ -1,0 +1,75 @@
+{
+  "_comment": "Everything model-specific lives here. 'model' is a name from config/models.ini. Add a skill = add an entry with a route_description; Tinker's decider picks it automatically.",
+  "llm_url": "http://127.0.0.1:8080",
+  "decider_url": "http://127.0.0.1:8081",
+  "confidence_min": 0.55,
+  "fallback_skill": "chat",
+  "trace": true,
+  "multi_step": {
+    "planner_model": "minicpm5",
+    "min_words": 12,
+    "max_steps": 4,
+    "trigger_words": ["then", "after that", "afterwards", "first", "next", "finally", "and also"]
+  },
+  "deep": {
+    "skill": "deep",
+    "trigger": "\\b(think (really )?hard|think deeply|deep think)\\b",
+    "not_for": ["write"]
+  },
+  "skills": {
+    "chat": {
+      "route_description": "casual conversation, greetings, or a quick factual question",
+      "model": "minicpm5",
+      "temperature": 1.0,
+      "top_p": 0.95,
+      "max_tokens": 300,
+      "thinking": false,
+      "output": "speak",
+      "system": "You are Tinker, a friendly voice assistant. Answer in one to three short spoken sentences. No markdown, no lists."
+    },
+    "code": {
+      "route_description": "write, fix, or explain code, scripts, or shell commands",
+      "model": "minicpm5",
+      "temperature": 1.0,
+      "top_p": 0.95,
+      "max_tokens": 900,
+      "extra": {"top_k": 20, "min_p": 0.0},
+      "thinking": false,
+      "output": "file",
+      "announce": "Working on it.",
+      "system": "You are a careful coding assistant. When asked to write code, reply with correct, minimal code in one fenced block, then one sentence of explanation. When asked to explain code, do NOT repeat the code: explain it line by line in plain text, one short sentence per line, naming the command or variable each sentence is about."
+    },
+    "reason": {
+      "route_description": "math, logic, or a hard problem that needs careful step-by-step thinking",
+      "model": "minicpm5",
+      "temperature": 1.0,
+      "top_p": 0.95,
+      "max_tokens": 700,
+      "thinking": false,
+      "output": "answer_line",
+      "system": "Solve the problem step by step but stay concise. Plain text only: no LaTeX, no markdown. Your last line must be 'Answer:' followed by the result in one short sentence."
+    },
+    "write": {
+      "route_description": "draft or rewrite an email, document, summary, or story",
+      "model": "gemma4",
+      "temperature": 1.0,
+      "top_p": 0.95,
+      "max_tokens": 450,
+      "thinking": false,
+      "output": "file",
+      "announce": "Working on it.",
+      "system": "You are a skilled writer. Produce exactly ONE ready-to-use version of what was asked. No options, no headings, no emojis, no tips or commentary. Keep it under 150 words unless asked for more. Use [Name]-style placeholders only in letters and emails, for personal details you cannot know (names, dates, addresses); never in poems or stories."
+    },
+    "deep": {
+      "_note": "Opt-in only (no route_description): triggered by 'think hard'. Slow: 1 to 3 minutes on CPU. Sampling not verified against the model card.",
+      "model": "vibethinker",
+      "temperature": 0.6,
+      "top_p": 0.95,
+      "max_tokens": 4096,
+      "thinking": true,
+      "output": "answer_line",
+      "announce": "Let me think about that.",
+      "system": "Solve the problem. Finish with one short plain-English sentence stating the answer. Do not use LaTeX."
+    }
+  }
+}

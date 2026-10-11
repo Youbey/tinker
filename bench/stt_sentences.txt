@@ -1,0 +1,10 @@
+What is the capital of Australia?
+Write an email to my landlord about the heater.
+What is seventeen times twenty three?
+Run podman pod start tinker brain.
+Remind me to call the dentist tomorrow at nine thirty.
+Summarize this paragraph in two short sentences.
+Write a Python function that reverses a string.
+Hey Tinker, what is the weather going to be like this weekend?
+Translate good morning, how are you, into French.
+Open the terminal and list all files in my documents folder.

@@ -1,0 +1,14 @@
+[
+  {"text": "hello, how are you today", "skill": "chat", "multi": false},
+  {"text": "what's the capital of Australia", "skill": "chat", "multi": false},
+  {"text": "tell me a joke", "skill": "chat", "multi": false},
+  {"text": "write a python function that reverses a string", "skill": "code", "multi": false},
+  {"text": "how do I list all docker containers including stopped ones", "skill": "code", "multi": false},
+  {"text": "what is 17 times 23", "skill": "reason", "multi": false},
+  {"text": "if all bloops are razzies and all razzies are lazzies, are all bloops lazzies", "skill": "reason", "multi": false},
+  {"text": "draft a polite email asking my landlord to fix the heater", "skill": "write", "multi": false},
+  {"text": "summarize the following paragraph in two sentences", "skill": "write", "multi": false},
+  {"text": "write a bash script that backs up my documents folder and then explain each line", "skill": null, "multi": true},
+  {"text": "first write a haiku about rain, then translate it to French, then explain the imagery", "skill": null, "multi": true},
+  {"text": "solve x squared minus 5x plus 6 equals zero and then write a short email explaining the result to my teacher", "skill": null, "multi": true}
+]
